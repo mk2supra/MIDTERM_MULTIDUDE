@@ -7,7 +7,6 @@ enum MachineStates {
   grabber,
   rotater,
   convey
-  
 }; 
 
 MachineStates curState = kiln;
@@ -58,6 +57,7 @@ void setup() {
  }
 
 
+ //functions to simplify, reading for 1 or 0
 bool DiscPlaced(){ //full basket at inner light barrier ready to be stored
   return !P1.readDiscrete(modInput, lbkiln);
 }
@@ -94,7 +94,7 @@ bool LBFORD(){
   return !P1.readDiscrete(modInput, conveylightbarrierend);
 }
 
-//output functions
+//Output functions triggering an action based on later true/false
 void ToggleCompressor(bool s){
   P1.writeDiscrete(s, modOutput, compressor);
 }
@@ -157,8 +157,8 @@ void loop() {
   switch (curState) {
     case kiln:
       // read outer light barrier, comp on, oven door true
-      if (DiscPlaced()){
-        ToggleCompressor(true); OvenDoor(true);
+      if (DiscPlaced()){ //iff the light barrier is tripped 
+        ToggleCompressor(true); OvenDoor(true); //turn on comp and open door
       
       delay(500);
       //next pull piece into kiln and shut door and bake it
@@ -174,7 +174,7 @@ void loop() {
       kilnLight(true);
       delay(3000);
       kilnLight(false);
- 
+ //open door and spit out baked disc
       OvenDoor(true);
       OvenOut(true);
       while(OvenPullout()){}
@@ -185,16 +185,16 @@ void loop() {
       break;
       case grabber:
       vacOven(true);
-      while(VacSwitchOven()){}
+      while(VacSwitchOven()){}//move gripper to the oven and wait till limit switch
       vacOven(false);
- 
+ //grab the disc: drop gripper, turn on vacuum, then pick gripper back ip
       dropgripper(true);
       delay(500);
       vacgrip(true);
       delay(500);
       dropgripper(false);
       delay(500);
- 
+ //move gripper down to tirn table
       vacturntable(true);
       while(VacSwitchTable()){}
       vacturntable(false);
@@ -202,47 +202,47 @@ void loop() {
       curState = rotater;
       break;  
       case rotater:
+      //move turn table to position
       turnCCW(true);
       while(turntableRef()){}
       turnCCW(false);
- 
+ //drop the puck/disc onto turn table
       dropgripper(true);
       delay(500);
       vacgrip(false);
-      delay(500);
       dropgripper(false);
       delay(500);
- 
+ //turn it to the saw
       turnCW(true);
       while(SawRef()){}
       turnCW(false);
- 
+ // run saw for 5 seconds
       Saw(true);
       delay(5000);
       Saw(false);
- 
+ //turn it to the output
       turnCW(true);
       while(FordConvey()){}
       turnCW(false);
- 
+ //output the disc
       valveTable(true);
       delay(500);
       valveTable(false);
       curState = convey;
       break;
       case convey:
+      //drive the disc forward on the conveyor
       Belt(true);
       if (LBFORD()){
       delay(1000);
       Belt(false);
       ToggleCompressor(false);
 
-      //to make it run faster
+      //to make it run faster reset the turn table before switching back to kiln
       turnCCW(true);
       while(turntableRef()){}
       turnCCW(false);
-      //so now we can shave a little time off the total operation.
-
+      //so now we can shave a litle time off the total operation.
 
       curState = kiln;
       }
